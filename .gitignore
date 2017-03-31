@@ -32,3 +32,7 @@
 *.dSYM/
 *.su
 /Debug/
+
+.cproject
+.project
+/.settings/language.settings.xml
