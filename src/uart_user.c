@@ -6,6 +6,61 @@
  */
 #include "uart_user.h"
 
+/**
+ * Global variables
+ */
+static t_buffer in = {{0}, 0, 0};			/** UART input buffer */
+static t_buffer out = {{0}, 0, 0};			/** UART output buffer */
+
+void USART2_IRQHandler(void)
+{
+	/** Check whether USART2 IRQ handler is triggered by receive interrupt */
+	if (USART_GetITStatus(USART2, USART_IT_RXNE))
+	{
+		uint8_t t;
+
+		/** Clear receive interrupt flag */
+		USART_ClearITPendingBit(USART2, USART_IT_RXNE);
+		/** Receive incoming character */
+		uint16_t result_word = USART_ReceiveData(USART2);
+		/**
+		 * User code starting here
+		 */
+		in.uart_buffer[in.next_in] = (uint8_t)result_word;
+		t = in.next_in;
+		in.next_in = (in.next_in + 1) % UART_BUFFER_SIZE;
+		if (in.next_in == in.next_out)
+		{
+			in.next_in = t;									/** Buffer is full */
+		}
+		/**
+		 * User code ends here
+		 */
+	}
+	/** Check whether USART2 IRQ handler is triggered by transmit interrupt */
+	else if (USART_GetITStatus(USART2, USART_IT_TXE))
+	{
+		/** Clear transmit interrupt flag */
+		USART_ClearITPendingBit(USART2, USART_IT_TXE);
+
+		/**
+		 * User code starting here
+		 */
+		if (out.next_in != out.next_out)
+		{
+			USART_SendData(USART2, out.uart_buffer[out.next_out]);
+			out.next_out = (out.next_out + 1) % UART_BUFFER_SIZE;
+		}
+		else
+		{
+			USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
+		}
+		/**
+		 * User code ends here
+		 */
+	}
+}
+
 int uart_init(uint32_t baudrate)
 {
 	GPIO_InitTypeDef GPIO_InitStruct; 		/** this is for the GPIO pins used as TX and RX */
@@ -72,35 +127,33 @@ int uart_init(uint32_t baudrate)
 	return NO_ERROR;
 }
 
-void uart_printf(USART_TypeDef *USARTx, char *s)
+uint8_t uart_bgetc()
 {
-	while (*s)
+	uint8_t c = in.uart_buffer[in.next_out];
+	in.next_out = (in.next_out + 1) % UART_BUFFER_SIZE;
+
+	return c;
+}
+
+void uart_bputc(uint8_t c)
+{
+	bool restart;
+	uint8_t ni;
+
+	restart = out.next_in == out.next_out;
+	out.uart_buffer[out.next_in] = c;
+	ni = (out.next_in + 1) % UART_BUFFER_SIZE;
+	while (ni == out.next_out);
+	out.next_in = ni;
+	if (restart)
 	{
-		/**
-		 * wait until data register is empty
-		 */
-		while( !(USARTx->SR & USART_FLAG_TXE) );
-		USARTx->DR = (uint16_t)(*s++ & 0x01FF);
+		USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
 	}
 }
 
-uint8_t uart_ReadByte(USART_TypeDef *USARTx)
+bool uart_bkbhit()
 {
-	while(!USART_GetFlagStatus(USARTx, USART_FLAG_RXNE));
-
-	uint16_t result_word = USART_ReceiveData(USARTx);
-	uint8_t result_byte = (uint8_t) result_word;
-
-	return result_byte;
-}
-
-void uart_WriteByte(USART_TypeDef *USARTx, uint8_t data)
-{
-	/** Send data */
-	USART_SendData(USARTx, data);
-
-	/** Wait for transmission to end */
-	while (USART_GetFlagStatus(USARTx, USART_FLAG_TC) == RESET);
+	return in.next_in!=in.next_out;
 }
 
 
