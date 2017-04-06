@@ -5,12 +5,14 @@
  *      Author: Miroslav Bozic
  */
 #include "uart_user.h"
+#include "gpio_user.h"
+#include "ring_buffer.h"
 
 /**
  * Global variables
  */
-static t_buffer in = {{0}, 0, 0};			/** UART input buffer */
-static t_buffer out = {{0}, 0, 0};			/** UART output buffer */
+static buffer_t in;
+static buffer_t out;
 
 void USART2_IRQHandler(void)
 {
@@ -26,12 +28,9 @@ void USART2_IRQHandler(void)
 		/**
 		 * User code starting here
 		 */
-		in.uart_buffer[in.next_in] = (uint8_t)result_word;
-		t = in.next_in;
-		in.next_in = (in.next_in + 1) % UART_BUFFER_SIZE;
-		if (in.next_in == in.next_out)
+		if(!ring_buffer_enQ(&in, (uint8_t)result_word))
 		{
-			in.next_in = t;									/** Buffer is full */
+			/** Handle buffer full exception */
 		}
 		/**
 		 * User code ends here
@@ -40,24 +39,27 @@ void USART2_IRQHandler(void)
 	/** Check whether USART2 IRQ handler is triggered by transmit interrupt */
 	else if (USART_GetITStatus(USART2, USART_IT_TXE))
 	{
+		uint8_t val;
+
 		/** Clear transmit interrupt flag */
 		USART_ClearITPendingBit(USART2, USART_IT_TXE);
 
 		/**
 		 * User code starting here
 		 */
-		if (out.next_in != out.next_out)
+		if (ring_buffer_deQ(&out, &val))
 		{
-			USART_SendData(USART2, out.uart_buffer[out.next_out]);
-			out.next_out = (out.next_out + 1) % UART_BUFFER_SIZE;
+			USART_SendData(USART2, val);
 		}
 		else
 		{
+			/** The buffer is empty so transmit interrupt should be disabled */
 			USART_ITConfig(USART2, USART_IT_TXE, DISABLE);
 		}
 		/**
 		 * User code ends here
 		 */
+
 	}
 }
 
@@ -124,36 +126,36 @@ int uart_init(uint32_t baudrate)
 	// finally this enables the complete USART2 peripheral
 	USART_Cmd(USART2, ENABLE);
 
+	ring_buffer_init(&in);
+	ring_buffer_init(&out);
+
 	return NO_ERROR;
 }
 
-uint8_t uart_bgetc()
+bool uart_bgetc(uint8_t *c)
 {
-	uint8_t c = in.uart_buffer[in.next_out];
-	in.next_out = (in.next_out + 1) % UART_BUFFER_SIZE;
+	if(!ring_buffer_deQ(&in, c))
+	{
+		return false;
+	}
 
-	return c;
+	return true;
 }
 
 void uart_bputc(uint8_t c)
 {
-	bool restart;
-	uint8_t ni;
-
-	restart = out.next_in == out.next_out;
-	out.uart_buffer[out.next_in] = c;
-	ni = (out.next_in + 1) % UART_BUFFER_SIZE;
-	while (ni == out.next_out);
-	out.next_in = ni;
-	if (restart)
+	bool restart = ring_buffer_isEmpty(&out);
+	while(!ring_buffer_enQ(&out, c));
+	if(restart)
 	{
 		USART_ITConfig(USART2, USART_IT_TXE, ENABLE);
 	}
+
 }
 
 bool uart_bkbhit()
 {
-	return in.next_in!=in.next_out;
+	return !ring_buffer_isEmpty(&in);
 }
 
 

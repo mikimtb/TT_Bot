@@ -14,4 +14,9 @@
 #define ERROR -1
 #define NO_ERROR 0
 
+/**
+ * System buffer sizes
+ */
+#define BUFFER_LENGTH 	64
+
 #endif /* DEFINITIONS_H_ */

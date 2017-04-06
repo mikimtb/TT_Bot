@@ -18,16 +18,6 @@
  */
 #define UART_RX_TIMOUT_ENABLE	0		/** Defines whether timeout is enabled or disabled */
 #define UART_RX_TIMEOUT			1		/** Defines USART timeout period in milliseconds */
-#define UART_BUFFER_SIZE		64		/** Defines USART buffer maximal length */
-/**
- * Type definitions
- */
-typedef struct buffer
-{
-	uint8_t uart_buffer[UART_BUFFER_SIZE];
-	uint8_t next_in;
-	uint8_t next_out;
-} t_buffer;
 
 /**
  * USART triggered interrupts handler function
@@ -43,9 +33,10 @@ int uart_init(uint32_t baudrate);
 
 /**
  * Function returns one byte from UART input buffer
- * @return first byte that is written to the uart input buffer
+ * @param c[out] return value
+ * @return true if getc is successful, false if not
  */
-uint8_t uart_bgetc();
+bool uart_bgetc(uint8_t *c);
 
 /**
  * Function write one byte into uart output buffer
