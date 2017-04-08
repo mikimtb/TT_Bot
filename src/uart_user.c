@@ -14,13 +14,18 @@
 static buffer_t in;
 static buffer_t out;
 
+/**
+ * Flag that is used to signal end of frame transmission
+ * true - transmission of a frame is done, next byte is beginning of new frame
+ * false - transmission of a frame is not done
+ */
+static bool new_frame = true;
+
 void USART2_IRQHandler(void)
 {
 	/** Check whether USART2 IRQ handler is triggered by receive interrupt */
 	if (USART_GetITStatus(USART2, USART_IT_RXNE))
 	{
-		uint8_t t;
-
 		/** Clear receive interrupt flag */
 		USART_ClearITPendingBit(USART2, USART_IT_RXNE);
 		/** Receive incoming character */
@@ -28,10 +33,11 @@ void USART2_IRQHandler(void)
 		/**
 		 * User code starting here
 		 */
-		if(!ring_buffer_enQ(&in, (uint8_t)result_word))
+		/*if(!ring_buffer_enQ(&in, (uint8_t)result_word))
 		{
 			/** Handle buffer full exception */
-		}
+		//}
+		unstuff_data((uint8_t)result_word);
 		/**
 		 * User code ends here
 		 */
@@ -158,4 +164,36 @@ bool uart_bkbhit()
 	return !ring_buffer_isEmpty(&in);
 }
 
+bool unstuff_data(uint8_t data)
+{
+	static uint8_t code;
+	static uint8_t i;
+	bool error_code = false;
 
+	if (new_frame)
+	{
+		code = data;
+		i = 1;
+		new_frame = false;
+	}
+	else
+	{
+		if (i < code)
+		{
+			error_code = ring_buffer_enQ(&in, data);
+			i++;
+		}
+		else if ((code < 0xff) && (data != 0x00))
+		{
+			error_code = ring_buffer_enQ(&in, 0);
+			code = data;
+			i = 1;
+		}
+		else if(data == 0x00)
+		{
+			new_frame = true;
+		}
+	}
+
+	return error_code;
+}

@@ -50,5 +50,13 @@ void uart_bputc(uint8_t c);
  */
 bool uart_bkbhit();
 
+/**
+ * Function un-stuff bytes and write them into input buffer
+ * The data are stuffed with Consistent Overhead Byte Stuffing (COBS) algorithm
+ * @param data[in] the data that should be un-stuffed
+ * @return true if un-stuffed byte is written into input buffer, false if not
+ */
+bool unstuff_data(uint8_t data);
+
 #endif /* UART_USER_H_ */
 
