@@ -29,7 +29,7 @@ void USART2_IRQHandler(void);
  * @param[in] baudrate selected communication speed
  * @return	error code, 0 for successful configuration, -1 for fail
  */
-int uart_init(uint32_t baudrate);
+error_t uart_init(uint32_t baudrate);
 
 /**
  * Function returns one byte from UART input buffer
@@ -51,12 +51,11 @@ void uart_bputc(uint8_t c);
 bool uart_bkbhit();
 
 /**
- * Function un-stuff bytes and write them into input buffer
- * The data are stuffed with Consistent Overhead Byte Stuffing (COBS) algorithm
- * @param data[in] the data that should be un-stuffed
- * @return true if un-stuffed byte is written into input buffer, false if not
+ * Function send data over USART. Data is stuffed with COBS byte stuff algorithm
+ * @param data array of data that should be sent
+ * @param data_size the size of array that should be sent
  */
-bool unstuff_data(uint8_t data);
+void uart_write(uint8_t* data, uint16_t data_size);
 
 #endif /* UART_USER_H_ */
 

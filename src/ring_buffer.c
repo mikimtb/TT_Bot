@@ -5,11 +5,23 @@
  *      Author: Miroslav
  */
 #include "ring_buffer.h"
+/**
+ * Private functions
+ */
 
+/**
+ * Function return how many bytes are stored in the buffer
+ * @param buff[in] pointer to the buffer
+ * @return number of stored bytes
+ */
 static uint32_t get_count(buffer_t* buff)
 {
 	return (buff->next_in - buff->next_out);
 }
+
+/**
+ * Public functions
+ */
 
 bool ring_buffer_isEmpty(buffer_t* buff)
 {

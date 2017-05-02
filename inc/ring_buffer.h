@@ -22,12 +22,6 @@ typedef struct buffer
 } buffer_t;
 
 /**
- * Function return how many bytes are stored in the buffer
- * @param buff[in] pointer to the buffer
- * @return number of stored bytes
- */
-static uint32_t get_count(buffer_t* buff);
-/**
  * Function check whether the buffer is empty
  * @param buff[in] pointer to the buffer
  * @return true if buffer is empty, false if buffer is not empty
