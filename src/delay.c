@@ -16,9 +16,6 @@ void SysTick_Handler(void)
 	{
 		t_delay--;
 	}
-
-	/** Increment sys_tick_timer */
-	sys_tick_timer++;
 }
 
 void delay_init()
@@ -32,9 +29,4 @@ void delay_ms(volatile uint32_t value)
 {
 	t_delay = value;
 	while(t_delay != 0);
-}
-
-uint32_t millis()
-{
-	return sys_tick_timer;
 }

@@ -220,7 +220,10 @@ bool protocol_parse_uart_data()
 {
 	bool msg_rcv_done = false;
     /** check state machine */
-	(*parse_next)();
+	while(uart_bkbhit() && (!NEW_MSG_RECEIVED_FLAG))
+	{
+		(*parse_next)();
+	}
 
 	if (NEW_MSG_RECEIVED_FLAG)
 	{

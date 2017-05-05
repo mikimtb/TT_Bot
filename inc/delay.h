@@ -21,10 +21,4 @@ void delay_init();
  */
 void delay_ms(volatile uint32_t value);
 
-/**
- * Function return current value of sys_tyck timer. The increment size is in milliseconds
- * @return sys_tick current value in ms
- */
-uint32_t millis();
-
 #endif /* DELAY_H_ */
